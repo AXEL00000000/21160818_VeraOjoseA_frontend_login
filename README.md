@@ -1,6 +1,8 @@
-# Panel de administración
+# Panel de administración · Login con JWT
 
-Frontend hecho con **Vue 3 + TypeScript** que consume el microservicio de [backend_for_students](https://github.com/BanderoChinoZF/backend_for_students/tree/BFS-0002) (rama `BFS-0002`). Tiene el **CRUD completo de roles, usuarios y empleados**: ver todos, ver uno, crear, editar y eliminar.
+Frontend en **Vue 3 + TypeScript** con **inicio de sesión** y **protección de rutas**. Consume el microservicio de [backend_for_students](https://github.com/BanderoChinoZF/backend_for_students/tree/BFS-0003) (rama `BFS-0003`): el backend valida la contraseña con **bcrypt** y devuelve un **token JWT**.
+
+Parte del CRUD de roles, usuarios y empleados de la práctica anterior ([21160818_VeraOjoseA_frontend](https://github.com/AXEL00000000/21160818_VeraOjoseA_frontend)) y le agrega el login.
 
 **Alumno:** Jose Axel Vera Ortiz · 21160818
 
@@ -8,88 +10,38 @@ Frontend hecho con **Vue 3 + TypeScript** que consume el microservicio de [backe
 
 ## Capturas
 
-### Roles
-
-| Lista de roles | Detalle de un rol |
+| Inicio de sesión | Sesión iniciada |
 | :---: | :---: |
-| ![Tabla con todos los roles](docs/capturas/lista.png) | ![Información de un solo rol](docs/capturas/detalle.png) |
+| ![Pantalla de inicio de sesión](docs/capturas/login.png) | ![Panel con la sesión iniciada](docs/capturas/sesion_iniciada.png) |
 
-| Crear rol | Editar rol |
-| :---: | :---: |
-| ![Formulario para crear un rol](docs/capturas/nuevo.png) | ![Formulario para editar un rol](docs/capturas/editar.png) |
+## Cómo funciona
 
-### Usuarios
+| Paso | Qué pasa |
+| --- | --- |
+| Iniciar sesión | `POST /api/v1/auth/login` con usuario (o correo) y contraseña. El backend responde con el `accessToken`. |
+| Guardar sesión | El token y el usuario se guardan en `localStorage`. |
+| Cada petición | Un interceptor de axios agrega `Authorization: Bearer <token>` a todas las peticiones. |
+| Protección de rutas | `router.beforeEach` manda a `/login` si no hay sesión, y de `/login` a `/roles` si ya la hay. |
+| Token vencido o inválido | Si el backend responde **401**, se cierra la sesión y se regresa al login. |
+| Cerrar sesión | El botón **Cerrar sesión** borra el token. |
 
-| Lista de usuarios | Detalle de un usuario | Crear usuario |
-| :---: | :---: | :---: |
-| ![Tabla con todos los usuarios](docs/capturas/usuarios_lista.png) | ![Información de un usuario](docs/capturas/usuarios_detalle.png) | ![Formulario para crear un usuario](docs/capturas/usuarios_nuevo.png) |
+Con la sesión iniciada se puede usar el CRUD de **roles, usuarios y empleados**.
 
-### Empleados
-
-| Lista de empleados | Detalle de un empleado | Crear empleado |
-| :---: | :---: | :---: |
-| ![Tabla con todos los empleados](docs/capturas/empleados_lista.png) | ![Información de un empleado](docs/capturas/empleados_detalle.png) | ![Formulario para crear un empleado](docs/capturas/empleados_nuevo.png) |
-
-## Qué hace
-
-Arriba hay un menú para cambiar entre **Roles**, **Usuarios** y **Empleados**. Cada sección tiene las mismas 4 vistas:
-
-| Vista | Roles | Usuarios | Empleados |
-| --- | --- | --- | --- |
-| Ver todos | `/roles` | `/usuarios` | `/empleados` |
-| Ver uno | `/roles/:id` | `/usuarios/:id` | `/empleados/:id` |
-| Crear | `/roles/nuevo` | `/usuarios/nuevo` | `/empleados/nuevo` |
-| Editar | `/roles/:id/editar` | `/usuarios/:id/editar` | `/empleados/:id/editar` |
-| Eliminar | botón en la tabla | botón en la tabla | botón en la tabla |
-
-Endpoints del backend que consume:
-
-| Recurso | Endpoint | Métodos |
-| --- | --- | --- |
-| Roles | `/api/v2/roles` | `GET`, `GET /:id`, `POST`, `PUT /:id`, `DELETE /:id` |
-| Usuarios | `/api/v2/usuarios` | `GET`, `GET /:id`, `POST`, `PUT /:id`, `DELETE /:id` |
-| Empleados | `/api/v2/employees` | `GET`, `GET /:id`, `POST`, `PUT /:id`, `DELETE /:id` |
-
-- Las peticiones se hacen con **axios**, un archivo de service por recurso.
-- Crear y editar usan el **mismo formulario**: si la ruta trae `id`, carga los datos y los actualiza; si no, crea uno nuevo.
-- **Usuarios:** el rol se elige de un select con los roles que existen. Al editar, la contraseña solo se cambia si se escribe una nueva.
-- **Empleados:** el usuario se elige de un select con los usuarios que existen. Teléfono, dirección y puesto son opcionales.
-- Antes de eliminar pide confirmación. Si el backend responde con error (nombre repetido, contraseña muy corta, usuario con empleado asociado, etc.), se muestra su mensaje en pantalla.
-
-## Estructura
+## Archivos del login
 
 ```
 src/
-├── App.vue                          # Encabezado, menú, <RouterView> y estilos generales
-├── main.ts                          # Arranca la app con el router
-├── router/index.ts                  # Rutas de las vistas
-├── services/
-│   ├── roles.service.ts             # Llamadas a /api/v2/roles
-│   ├── usuarios.service.ts          # Llamadas a /api/v2/usuarios
-│   ├── empleados.service.ts         # Llamadas a /api/v2/employees
-│   └── error.ts                     # Saca el mensaje de error del backend
-└── views/
-    ├── RolesView.vue                # Tabla de roles
-    ├── RolDetalleView.vue           # Información de un rol
-    ├── RolFormView.vue              # Crear y editar rol
-    ├── UsuariosView.vue             # Tabla de usuarios
-    ├── UsuarioDetalleView.vue       # Información de un usuario
-    ├── UsuarioFormView.vue          # Crear y editar usuario
-    ├── EmpleadosView.vue            # Tabla de empleados
-    ├── EmpleadoDetalleView.vue      # Información de un empleado
-    └── EmpleadoFormView.vue         # Crear y editar empleado
+├── services/auth.service.ts   # login, logout, token e interceptores de axios
+├── views/LoginView.vue        # pantalla de inicio de sesión
+├── router/index.ts            # ruta /login y protección de rutas (beforeEach)
+└── App.vue                    # menú con usuario y botón Cerrar sesión
 ```
 
 ## Cómo correrlo
 
 Requiere Node.js 22.18 o más reciente.
 
-1. Levantar el backend ([backend_for_students](https://github.com/BanderoChinoZF/backend_for_students/tree/BFS-0002), rama `BFS-0002`) con su conexión a la base de datos. Debe quedar en `http://localhost:3000`:
-
-```sh
-npm run dev
-```
-
+1. Levantar el backend (`backend_for_students`, rama `BFS-0003`) en `http://localhost:3000`, con `JWT_SECRET` en su `.env` y un usuario con rol **admin**.
 2. En este proyecto:
 
 ```sh
@@ -97,8 +49,4 @@ npm install
 npm run dev
 ```
 
-3. Abrir http://localhost:5173
-
-La dirección del backend está en cada archivo de `src/services/` (`const API`). Si el backend corre en otro puerto, se cambia ahí.
-
-Para probar todo en orden: primero crear un **rol**, luego un **usuario** con ese rol y al final un **empleado** con ese usuario.
+3. Abrir http://localhost:5173 e iniciar sesión.
